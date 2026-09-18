@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СИГНАЛ — отложенные сообщения на телефон</title>
+
+<!-- Режим приложения: с иконки открывается без адресной строки -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="СИГНАЛ">
+<meta name="theme-color" content="#171410">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23171410'/%3E%3Cpath%20d='M44%2027a12%2012%200%200%200-24%200c0%2011-5%2014-5%2014h34s-5-3-5-14'%20fill='none'%20stroke='%23F2E8CF'%20stroke-width='4'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Cpath%20d='M28%2047a4.5%204.5%200%200%200%208%200'%20fill='none'%20stroke='%23F2E8CF'%20stroke-width='4'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='20'%20r='3'%20fill='%23E8491D'/%3E%3C/svg%3E">
+<link rel="manifest" href='data:application/manifest+json,{"name":"%D0%A1%D0%98%D0%93%D0%9D%D0%90%D0%9B","short_name":"%D0%A1%D0%98%D0%93%D0%9D%D0%90%D0%9B","display":"standalone","background_color":"%23EFE9D8","theme_color":"%23171410","start_url":".","icons":[{"src":"data:image/svg+xml,%253Csvg%2520xmlns=%2522http://www.w3.org/2000/svg%2522%2520viewBox=%25220%25200%252064%252064%2522%253E%253Crect%2520width=%252264%2522%2520height=%252264%2522%2520rx=%252214%2522%2520fill=%2522%2523171410%2522/%253E%253Cpath%2520d=%2522M44%252027a12%252012%25200%25200%25200-24%25200c0%252011-5%252014-5%252014h34s-5-3-5-14%2522%2520fill=%2522none%2522%2520stroke=%2522%2523F2E8CF%2522%2520stroke-width=%25224%2522%2520stroke-linecap=%2522round%2522%2520stroke-linejoin=%2522round%2522/%253E%253Cpath%2520d=%2522M28%252047a4.5%25204.5%25200%25200%25200%25208%25200%2522%2520fill=%2522none%2522%2520stroke=%2522%2523F2E8CF%2522%2520stroke-width=%25224%2522%2520stroke-linecap=%2522round%2522/%253E%253Ccircle%2520cx=%252232%2522%2520cy=%252220%2522%2520r=%25223%2522%2520fill=%2522%2523E8491D%2522/%253E%253C/svg%253E","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFE9D8; --paper-2:#F4EFE0; --ink:#1A1712; --ink-soft:#6B6452;
+    --line:rgba(26,23,18,.22); --line-strong:rgba(26,23,18,.45);
+    --accent:#E8491D; --ok:#2E7D4F;
+    --board:#171410; --board-digit:#F2E8CF;
+    --font-d:'Unbounded',sans-serif; --font-m:'IBM Plex Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{color-scheme:light}
+  body{background:var(--paper);color:var(--ink);font-family:var(--font-m);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;mix-blend-mode:multiply;opacity:.55;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 20px 90px;position:relative;z-index:2}
+  button{font-family:var(--font-m);cursor:pointer;color:inherit}
+  button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:2px dashed var(--accent);outline-offset:3px}
+  ::selection{background:var(--accent);color:var(--paper-2)}
+
+  /* ── шапка ── */
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 0 16px;border-bottom:2px solid var(--ink)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-mark{width:38px;height:38px;background:var(--ink);color:var(--paper-2);display:grid;place-items:center;border-radius:8px;box-shadow:3px 3px 0 rgba(26,23,18,.25)}
+  .brand-name{font-family:var(--font-d);font-weight:800;font-size:19px;letter-spacing:.05em}
+  .brand-sub{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tool{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;letter-spacing:.03em;border:1.5px solid var(--ink);background:transparent;padding:7px 11px;border-radius:6px;transition:background .15s,color .15s;position:relative}
+  .tool:hover{background:var(--ink);color:var(--paper-2)}
+  .tool.on{background:var(--ink);color:var(--paper-2)}
+  .tool .st-dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink-soft);border:2px solid var(--paper)}
+  .tool.on .st-dot{background:var(--ok)}
+
+  /* ── флип-табло ── */
+  .hero{margin-top:30px}
+  .board{position:relative;background:var(--board);border-radius:14px;padding:20px 16px 24px;box-shadow:6px 6px 0 rgba(26,23,18,.22);border:1px solid #000}
+  .board-label{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(242,232,207,.42);padding:0 6px 14px}
+  .screw{position:absolute;width:9px;height:9px;border-radius:50%;background:#0b0a08;border:1px solid rgba(242,232,207,.18)}
+  .screw::after{content:'';position:absolute;left:1px;right:1px;top:50%;height:1px;background:rgba(242,232,207,.3);transform:rotate(40deg)}
+  .screw.tl{top:7px;left:7px}.screw.tr{top:7px;right:7px}.screw.bl{bottom:7px;left:7px}.screw.br{bottom:7px;right:7px}
+  .clock{--dh:clamp(56px,11vw,104px);display:flex;justify-content:center;align-items:center;gap:calc(var(--dh)*.14);user-select:none}
+  .pair{display:flex;gap:calc(var(--dh)*.09)}
+  .colon{height:var(--dh);line-height:var(--dh);font-size:calc(var(--dh)*.58);font-weight:700;color:var(--board-digit);animation:breath 2s ease-in-out infinite;padding-bottom:calc(var(--dh)*.06)}
+  @keyframes breath{0%,100%{opacity:1}50%{opacity:.28}}
+  .digit{position:relative;width:calc(var(--dh)*.68);height:var(--dh);perspective:320px;font-weight:700;font-size:calc(var(--dh)*.72);color:var(--board-digit)}
+  .digit .half{position:absolute;left:0;width:100%;height:50%;overflow:hidden;background:var(--board)}
+  .digit .half.top{top:0;border-radius:7px 7px 0 0;border-bottom:1px solid rgba(0,0,0,.9);box-shadow:inset 0 -1px 0 rgba(242,232,207,.12)}
+  .digit .half.bottom{bottom:0;border-radius:0 0 7px 7px;border-top:1px solid rgba(0,0,0,.9)}
+  .digit .half span{position:absolute;left:0;width:100%;height:var(--dh);line-height:var(--dh);text-align:center;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+  .digit .half.top span{top:0}
+  .digit .half.bottom span{bottom:0}
+  .digit .half.bottom::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.26);pointer-events:none}
+  .digit .flap{z-index:3;backface-visibility:hidden}
+  .digit .flap.top{transform-origin:50% 100%}
+  .digit .flap.top.anim{animation:foldTop .13s ease-in forwards}
+  @keyframes foldTop{to{transform:rotateX(-90deg)}}
+  .digit .flap.bottom{transform-origin:50% 0;transform:rotateX(90deg)}
+  .digit .flap.bottom.anim{animation:foldBottom .13s .13s ease-out forwards}
+  @keyframes foldBottom{to{transform:rotateX(0)}}
+  .under-board{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:16px;text-align:center}
+  .now-date{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .nearest{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:500}
+  .nearest .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink)}
+  .nearest.live .dot{background:var(--accent);border-color:var(--accent);animation:dotpulse 1.1s ease-in-out infinite}
+  @keyframes dotpulse{50%{transform:scale(1.5);opacity:.5}}
+
+  /* ── секции ── */
+  section{margin-top:44px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1.5px solid var(--line-strong);padding-bottom:9px}
+  .sec-num{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.1em}
+  .sec-title{font-family:var(--font-d);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.06em}
+  .sec-meta{margin-left:auto;font-size:11px;color:var(--ink-soft);letter-spacing:.04em}
+  .sec-clear{margin-left:8px;font-size:11px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;text-underline-offset:3px}
+  .sec-clear:hover{color:var(--accent)}
+
+  /* ── панель телефона ── */
+  .phone-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease;margin-top:16px}
+  .phone-wrap.open{grid-template-rows:1fr}
+  .phone-inner{overflow:hidden;min-height:0}
+  .phone-panel{background:var(--paper-2);border:2px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 rgba(26,23,18,.2);padding:20px}
+  .ph-status{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;letter-spacing:.03em;margin-bottom:14px}
+  .ph-status .led{width:10px;height:10px;border-radius:50%;background:var(--ink-soft);flex:none}
+  .ph-status.ok{color:var(--ok)} .ph-status.ok .led{background:var(--ok)}
+  .steps{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;counter-reset:st}
+  .step{display:flex;gap:12px;font-size:13px;line-height:1.55}
+  .step::before{counter-increment:st;content:counter(st);flex:none;width:24px;height:24px;border:1.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--paper)}
+  .step a{color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+  .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field-label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px}
+  .cfg-grid input,.cfg-grid select{font-family:var(--font-m);font-size:14px;color:var(--ink);background:transparent;border:1.5px solid var(--line-strong);border-radius:7px;padding:10px 12px;width:100%}
+  .cfg-grid input:focus,.cfg-grid select:focus{border-color:var(--ink);outline:none}
+  .topic-row{display:flex;gap:8px}
+  .mini{border:1.5px solid var(--line-strong);border-radius:7px;background:transparent;padding:8px 10px;font-size:12px;transition:all .15s;white-space:nowrap}
+  .mini:hover{border-color:var(--ink);background:var(--ink);color:var(--paper-2)}
+  .ph-note{font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin-top:14px;border-left:3px solid var(--line-strong);padding-left:12px}
+  .ph-note b{color:var(--ink)}
+  .ph-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+  /* ── форма ── */
+  .compose{margin-top:20px;background:var(--paper-2);border:2px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 rgba(26,23,18,.2);padding:20px}
+  textarea{width:100%;min-height:96px;resize:vertical;background:transparent;border:1.5px solid var(--line-strong);border-radius:7px;padding:12px 14px;font-family:var(--font-m);font-size:16px;line-height:1.55;color:var(--ink);transition:border-color .15s}
+  textarea:focus{border-color:var(--ink);outline:none}
+  textarea::placeholder{color:rgba(26,23,18,.35)}
+  .char-row{display:flex;justify-content:flex-end;margin-top:5px;font-size:11px;color:var(--ink-soft)}
+  .char-row.over{color:var(--accent);font-weight:700}
+  .time-row{display:flex;gap:10px;margin-top:18px}
+  .time-row .cell{display:flex;flex-direction:column}
+  .cell.date{flex:1.4}.cell.time{flex:1}
+  input[type=date],input[type=time]{font-family:var(--font-m);font-size:15px;color:var(--ink);background:transparent;border:1.5px solid var(--line-strong);border-radius:7px;padding:10px 12px;width:100%}
+  input[type=date]:focus,input[type=time]:focus{border-color:var(--ink);outline:none}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{font-size:12px;border:1.5px solid var(--ink);background:transparent;border-radius:99px;padding:6px 13px;transition:background .15s,color .15s}
+  .chip:hover{background:var(--ink);color:var(--paper-2)}
+  .cta-row{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap}
+  .cta{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#160B05;border:2px solid var(--ink);border-radius:8px;padding:13px 22px;font-family:var(--font-d);font-weight:700;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;box-shadow:4px 4px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+  .cta:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+  .cta:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .ghost{background:none;border:none;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px}
+  .ghost:hover{color:var(--accent)}
+  .form-msg{font-size:12.5px;color:var(--accent);font-weight:700;flex:1;min-width:180px}
+  .shake{animation:shake .4s}
+  @keyframes shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+
+  /* ── талоны ── */
+  .ticket{display:grid;grid-template-columns:172px 1fr 190px;gap:8px 18px;padding:18px 6px;position:relative}
+  .ticket:not(:last-child){border-bottom:2px dotted var(--line-strong)}
+  .ticket:hover{background:rgba(255,252,240,.5)}
+  .t-side{display:flex;flex-direction:column;gap:4px}
+  .t-num{font-family:var(--font-d);font-weight:700;font-size:13px;letter-spacing:.04em}
+  .t-when{font-size:12px;color:var(--ink-soft)}
+  .t-flag{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
+  .t-flag.sent{color:var(--ok);font-weight:700}
+  .t-text{font-size:16.5px;line-height:1.5;align-self:center;word-break:break-word}
+  .t-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  .t-count{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .t-count.urgent{color:var(--accent);animation:urgblink 1s steps(2) infinite}
+  @keyframes urgblink{50%{opacity:.45}}
+  .t-actions{display:flex;gap:6px}
+  .ibtn{width:32px;height:32px;display:grid;place-items:center;border:1.5px solid var(--line-strong);border-radius:6px;background:transparent;color:var(--ink-soft);transition:all .15s}
+  .ibtn:hover{border-color:var(--ink);color:var(--ink);background:var(--paper-2)}
+  .ibtn.danger-armed{border-color:var(--accent);color:var(--paper-2);background:var(--accent);width:auto;padding:0 10px;font-size:11px;font-weight:700}
+  .empty{border:2px dashed var(--line-strong);border-radius:10px;padding:30px 22px;text-align:center;color:var(--ink-soft);font-size:13px;margin-top:18px}
+  .empty svg{display:block;margin:0 auto 10px;opacity:.6}
+
+  .h-item{display:grid;grid-template-columns:210px 1fr;gap:16px;padding:13px 6px;border-bottom:1px solid var(--line);color:var(--ink-soft)}
+  .h-item:last-child{border-bottom:none}
+  .h-date{font-size:11.5px;padding-top:2px}
+  .h-date b{color:var(--accent);font-weight:700}
+  .h-date i{font-style:normal;font-size:10px;display:block;letter-spacing:.04em}
+  .h-text{font-size:14px}
+  .h-text::before{content:'«'} .h-text::after{content:'»'}
+
+  footer{margin-top:64px;border-top:1.5px solid var(--line-strong);padding-top:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);letter-spacing:.04em}
+
+  /* ── тревожный оверлей ── */
+  .alarm-bg{position:fixed;inset:0;z-index:50;background:rgba(23,20,15,.8);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+  .alarm-bg.open{opacity:1;pointer-events:auto}
+  .alarm-card{width:min(660px,94vw);background:var(--paper);border:2px solid var(--ink);border-radius:12px;box-shadow:10px 10px 0 rgba(0,0,0,.45);overflow:hidden;animation:tremble .3s infinite}
+  @keyframes tremble{0%{transform:translate(.6px,-.5px)}25%{transform:translate(-.5px,.6px) rotate(.1deg)}50%{transform:translate(.5px,.4px)}75%{transform:translate(-.6px,-.4px) rotate(-.1deg)}100%{transform:translate(.4px,-.6px)}}
+  .tape{height:36px;display:grid;place-items:center;background:repeating-linear-gradient(45deg,var(--accent) 0 14px,var(--ink) 14px 28px);animation:tapeslide 1.1s linear infinite}
+  @keyframes tapeslide{to{background-position:39.6px 0}}
+  .tape span{background:var(--paper);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;padding:4px 16px}
+  .alarm-body{padding:26px 28px 28px;text-align:center}
+  .alarm-bell{color:var(--accent);margin-bottom:14px;transform-origin:50% 8%;animation:swing .9s ease-in-out infinite}
+  @keyframes swing{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+  .alarm-meta{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px}
+  .alarm-text{font-family:var(--font-d);font-weight:800;font-size:clamp(20px,4.4vw,38px);line-height:1.3;word-break:break-word}
+  .alarm-text.long{font-size:clamp(16px,3vw,24px);font-weight:700}
+  .alarm-actions{display:flex;justify-content:center;gap:14px;margin-top:26px;flex-wrap:wrap}
+  .btn-snooze,.btn-accept{border:2px solid var(--ink);border-radius:8px;padding:12px 20px;font-family:var(--font-d);font-weight:700;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+  .btn-snooze{background:var(--paper-2);color:var(--ink)}
+  .btn-accept{background:var(--accent);color:#160B05}
+  .btn-snooze:hover,.btn-accept:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn-snooze:active,.btn-accept:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+
+  #toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;width:min(480px,92vw)}
+  .toast{background:var(--ink);color:var(--paper);font-size:12.5px;padding:12px 16px;border-left:4px solid var(--accent);border-radius:6px;box-shadow:4px 4px 0 rgba(0,0,0,.3);animation:tin .25s ease-out}
+  .toast.hide{opacity:0;transform:translateY(8px);transition:all .3s}
+  @keyframes tin{from{opacity:0;transform:translateY(10px)}}
+
+  @media (max-width:660px){
+    .ticket{grid-template-columns:1fr;grid-template-areas:"side" "text" "right"}
+    .t-side{grid-area:side;flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}
+    .t-text{grid-area:text;align-self:start}
+    .t-right{grid-area:right;flex-direction:row;justify-content:space-between;align-items:center;width:100%}
+    .h-item{grid-template-columns:1fr;gap:4px}
+    .time-row,.cfg-grid{flex-direction:column;grid-template-columns:1fr}
+    .alarm-body{padding:20px 18px 24px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">СИГНАЛ</div>
+        <div class="brand-sub">отложенные сообщения → телефон</div>
+      </div>
+    </div>
+    <div class="head-tools">
+      <button class="tool" id="phoneBtn" type="button"><span class="st-dot"></span><span id="phoneBtnLabel">Телефон</span></button>
+      <button class="tool" id="muteBtn" type="button" aria-pressed="false"></button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="board">
+      <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+      <div class="board-label"><span>текущее время · местное</span><span>СИГНАЛ-1</span></div>
+      <div class="clock" id="clockDigits">
+        <div class="pair" data-g="h1"></div><div class="colon">:</div>
+        <div class="pair" data-g="m1"></div><div class="colon">:</div>
+        <div class="pair" data-g="s1"></div>
+      </div>
+    </div>
+    <div class="under-board">
+      <div class="now-date" id="nowDate"></div>
+      <div class="nearest" id="nearest"><span class="dot"></span><span id="nearestText">передача не запланирована</span></div>
+    </div>
+  </div>
+
+  <!-- Панель подключения телефона -->
+  <div class="phone-wrap" id="phoneWrap">
+    <div class="phone-inner">
+      <div class="phone-panel">
+        <div class="ph-status" id="phStatus"><span class="led"></span><span id="phStatusText"></span></div>
+        <div class="steps">
+          <div class="step">Установите бесплатное приложение <a href="https://ntfy.sh/apps" target="_blank" rel="noopener">ntfy</a> — есть в Google Play, App Store и F-Droid.</div>
+          <div class="step">В приложении нажмите «+» и подпишитесь на топик — скопируйте его имя ниже и вставьте. Имя случайное: уведомления видите только вы.</div>
+          <div class="step">На Android отключите для ntfy оптимизацию батареи (Настройки → Батарея), чтобы ничего не проспать.</div>
+        </div>
+        <div class="cfg-grid">
+          <div>
+            <label class="field-label" for="srvIn">Сервер</label>
+            <input id="srvIn" value="https://ntfy.sh" spellcheck="false" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="topicIn">Топик (секретное имя канала)</label>
+            <div class="topic-row">
+              <input id="topicIn" spellcheck="false" autocomplete="off">
+              <button class="mini" id="genTopic" type="button">другой</button>
+              <button class="mini" id="copyTopic" type="button">копировать</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="soundSel">Звук на телефоне</label>
+            <select id="soundSel">
+              <option value="default">Стандартный системы</option>
+              <option value="ding">Ding</option>
+              <option value="bell">Колокол</option>
+              <option value="chime">Chime</option>
+              <option value="mail">Почта</option>
+              <option value="alarm">Сигнал будильника</option>
+            </select>
+          </div>
+        </div>
+        <div class="ph-actions">
+          <button class="mini" id="testPush" type="button">Отправить тестовое на телефон</button>
+          <button class="mini" id="savePhone" type="button" style="border-color:var(--ink);font-weight:700">Подключить</button>
+        </div>
+        <div class="ph-note">
+          <b>Как гарантировать доставку:</b> сообщения на срок до 11 часов уходят на сервер сразу — телефон прозвенит, даже если закрыть браузер. Более дальние передаются автоматически, когда до срока останется 11 часов: в этот момент эта вкладка должна быть открыта (свернуть можно). Сообщения, пришедшие, пока вы были офлайн, приложение догонит при открытии.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <span class="sec-title">Новое отправление</span>
+      <span class="sec-meta" id="formMeta"></span>
+    </div>
+    <div class="compose" id="composeBox">
+      <label class="field-label" for="msgText">Текст сообщения</label>
+      <textarea id="msgText" maxlength="500" placeholder="Например: привет! Встань и разомнись."></textarea>
+      <div class="char-row"><span id="charCount">0 / 500</span></div>
+      <label class="field-label" style="margin-top:14px">Момент доставки</label>
+      <div class="time-row">
+        <div class="cell date"><input type="date" id="dateInput" aria-label="Дата"></div>
+        <div class="cell time"><input type="time" id="timeInput" aria-label="Время"></div>
+      </div>
+      <div class="presets" id="presets"></div>
+      <div class="cta-row">
+        <button class="cta" id="ctaBtn" type="button">
+          <span id="ctaLabel">Отправить в будущее</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <button class="ghost" id="cancelEdit" type="button" hidden>отменить правку</button>
+        <div class="form-msg" id="formMsg" role="alert"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <span class="sec-title">В пути</span>
+      <span class="sec-meta" id="queueMeta"></span>
+    </div>
+    <div id="queueList"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <span class="sec-title">Доставлено</span>
+      <span class="sec-meta" id="historyMeta"></span>
+      <button class="sec-clear" id="clearHistory" type="button" hidden>очистить</button>
+    </div>
+    <div id="historyList"></div>
+  </section>
+
+  <footer>
+    <span>доставка на телефон через ntfy · данные — только в этом браузере</span>
+    <span id="connState">телефон не подключен</span>
+  </footer>
+</div>
+
+<!-- Тревожный оверлей -->
+<div class="alarm-bg" id="alarmOverlay" aria-live="assertive">
+  <div class="alarm-card" role="alertdialog" aria-modal="true" aria-labelledby="alarmText">
+    <div class="tape"><span>Входящий сигнал</span></div>
+    <div class="alarm-body">
+      <div class="alarm-bell">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path d="M2.6 5.6a5.5 5.5 0 0 1 3-3.1"/><path d="M21.4 5.6a5.5 5.5 0 0 0-3-3.1"/></svg>
+      </div>
+      <div class="alarm-meta" id="alarmMeta"></div>
+      <div class="alarm-text" id="alarmText"></div>
+      <div class="alarm-actions">
+        <button class="btn-snooze" id="snoozeBtn" type="button">Отложить +5 мин</button>
+        <button class="btn-accept" id="acceptBtn" type="button">Принять</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ═══════ утилиты ═══════ */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtWhen = ts => new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',year: new Date(ts).getFullYear()!==new Date().getFullYear()?'numeric':undefined}).format(new Date(ts));
+const fmtFull = ts => new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(ts));
+const fmtCd = ms => {
+  const t = Math.max(0, Math.floor(ms/1000));
+  const d = Math.floor(t/86400), h = Math.floor(t%86400/3600), m = Math.floor(t%3600/60), s = t%60;
+  return d > 0 ? `${d}д ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`;
+};
+
+/* ═══════ хранилище ═══════ */
+const LS_DATA='signal.v2.data', LS_SEQ='signal.v2.seq', LS_MUTE='signal.v2.muted', LS_PHONE='signal.v2.phone';
+const PUSH_WINDOW = 11*3600*1000;           // ntfy.sh хранит сообщения 12 ч — укладываемся с запасом
+let reminders = [];
+try { reminders = JSON.parse(localStorage.getItem(LS_DATA)) || []; } catch(e){}
+let seq = +(localStorage.getItem(LS_SEQ) || 0);
+let muted = localStorage.getItem(LS_MUTE) === '1';
+let phone = { server:'https://ntfy.sh', topic:'', sound:'default' };
+try { Object.assign(phone, JSON.parse(localStorage.getItem(LS_PHONE)) || {}); } catch(e){}
+const save = () => {
+  localStorage.setItem(LS_DATA, JSON.stringify(reminders));
+  localStorage.setItem(LS_SEQ, String(seq));
+  localStorage.setItem(LS_MUTE, muted ? '1' : '0');
+  localStorage.setItem(LS_PHONE, JSON.stringify(phone));
+};
+const phoneOK = () => !!phone.topic.trim();
+
+/* ═══════ иконки ═══════ */
+const I = {
+  bellOff:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><line x1="3" y1="3" x2="21" y2="21"/>',
+  arch:'<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  vol:'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>',
+  volX:'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/>',
+  pencil:'<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+};
+const icon = (n,s=16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
+
+/* ═══════ флип-табло ═══════ */
+class FlapDigit {
+  constructor(parent){
+    const el = document.createElement('div');
+    el.className = 'digit';
+    el.innerHTML = '<div class="half top"><span>0</span></div><div class="half bottom"><span>0</span></div><div class="half flap top"><span>0</span></div><div class="half flap bottom"><span>0</span></div>';
+    parent.appendChild(el);
+    const h = el.querySelectorAll('.half');
+    this.top = h[0].firstElementChild; this.bot = h[1].firstElementChild;
+    this.fTop = h[2]; this.fBot = h[3]; this.val = '0';
+  }
+  setInstant(v){ [this.top,this.bot,this.fTop.firstElementChild,this.fBot.firstElementChild].forEach(s=>s.textContent=v); this.val=v; }
+  set(v){
+    if (v === this.val) return;
+    this.fTop.firstElementChild.textContent = this.val;
+    this.fBot.firstElementChild.textContent = v;
+    this.bot.textContent = v;
+    this.fTop.classList.remove('anim'); this.fBot.classList.remove('anim');
+    void this.fTop.offsetWidth;
+    this.fTop.classList.add('anim'); this.fBot.classList.add('anim');
+    clearTimeout(this.t);
+    this.t = setTimeout(()=>{ this.top.textContent = v; }, 280);
+    this.val = v;
+  }
+}
+const digits = {};
+document.querySelectorAll('#clockDigits .pair').forEach(g => { digits[g.dataset.g] = [new FlapDigit(g), new FlapDigit(g)]; });
+let lastTime = '';
+function renderClock(){
+  const d = new Date(), key = d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds();
+  if (key === lastTime) return;
+  lastTime = key;
+  const hh = pad(d.getHours()), mm = pad(d.getMinutes()), ss = pad(d.getSeconds());
+  digits.h1[0].set(hh[0]); digits.h1[1].set(hh[1]);
+  digits.m1[0].set(mm[0]); digits.m1[1].set(mm[1]);
+  digits.s1[0].set(ss[0]); digits.s1[1].set(ss[1]);
+}
+function initClock(){
+  const d = new Date(), hh = pad(d.getHours()), mm = pad(d.getMinutes()), ss = pad(d.getSeconds());
+  digits.h1[0].setInstant(hh[0]); digits.h1[1].setInstant(hh[1]);
+  digits.m1[0].setInstant(mm[0]); digits.m1[1].setInstant(mm[1]);
+  digits.s1[0].setInstant(ss[0]); digits.s1[1].setInstant(ss[1]);
+  lastTime = d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds();
+}
+
+/* ═══════ звук: короткий «динь» уведомления (Web Audio) ═══════ */
+let AC = null, alarmInt = null;
+function audio(){
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  if (AC && AC.state === 'suspended') AC.resume().catch(()=>{});
+  return AC;
+}
+document.addEventListener('pointerdown', audio);
+function tone(f, when, vol, dur){
+  [[1,1],[2.76,.35]].forEach(([m,g])=>{
+    const o = AC.createOscillator(), ga = AC.createGain();
+    o.type='sine'; o.frequency.value = f*m;
+    ga.gain.setValueAtTime(vol*g, when);
+    ga.gain.exponentialRampToValueAtTime(0.0001, when + dur/Math.sqrt(m));
+    o.connect(ga).connect(AC.destination);
+    o.start(when); o.stop(when + dur);
+  });
+}
+function ding(){
+  if (muted || !audio()) return;
+  const t = AC.currentTime + 0.01;
+  tone(1174.66, t,        0.14, 0.9);
+  tone(1567.98, t + 0.09, 0.12, 1.1);
+}
+function blip(){ if (muted || !audio()) return; tone(1046.5, AC.currentTime + 0.01, 0.07, 0.5); }
+function startAlarmLoop(){ if (alarmInt) return; ding(); alarmInt = setInterval(ding, 3200); }
+function stopAlarmLoop(){ clearInterval(alarmInt); alarmInt = null; }
+
+/* ═══════ тосты ═══════ */
+function toast(msg){
+  const box = $('#toasts'), el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstElementChild.remove();
+  setTimeout(()=>{ el.classList.add('hide'); setTimeout(()=>el.remove(), 320); }, 4200);
+}
+
+/* ═══════ ntfy: отправка на телефон ═══════ */
+async function pushToPhone(r, test=false){
+  if (!phoneOK()) return false;
+  const base = phone.server.replace(/\/+$/,'');
+  const ctrl = new AbortController();
+  const to = setTimeout(()=>ctrl.abort(), 10000);
+  try {
+    const headers = {
+      'X-Title':   test ? 'СИГНАЛ · тест связи' : `СИГНАЛ · №${String(r.seq).padStart(3,'0')}`,
+      'X-Priority':'4',
+      'X-Tags':    'bell',
+      'X-Sound':   phone.sound || 'default'
+    };
+    if (!test) headers['X-Delay'] = String(Math.ceil(r.time/1000));
+    const res = await fetch(base + '/', { method:'POST', headers, body: test ? 'Связь с приложением СИГНАЛ установлена. Уведомления будут приходить сюда.' : r.text, signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if (!test){ r.remoteId = j.id; r.sentToServer = true; save(); render(); }
+    return true;
+  } catch(e){
+    if (!test) toast('Не удалось связаться с сервером — повторю автоматически.');
+    return false;
+  } finally { clearTimeout(to); }
+}
+/* отмена запланированного на сервере уведомления (при правке, удалении, переносе) */
+async function cancelRemote(r){
+  if (!phoneOK() || !r.remoteId) return;
+  const base = phone.server.replace(/\/+$/,'');
+  try {
+    await fetch(`${base}/${encodeURIComponent(phone.topic.trim())}?id=${encodeURIComponent(r.remoteId)}`, { method:'DELETE' });
+  } catch(e){}
+  r.remoteId = null;
+}
+/* досыльщик: дальние сообщения уходим передавать, когда до срока остаётся <11 ч */
+async function forwardDue(){
+  if (!phoneOK()) return;
+  const now = Date.now();
+  for (const r of reminders){
+    if (r.status === 'pending' && !r.sentToServer && r.time - now <= PUSH_WINDOW){
+      const ok = await pushToPhone(r);
+      if (!ok) return;
+    }
+  }
+}
+setInterval(forwardDue, 30000);
+
+/* ═══════ ntfy: приём (SSE) — синхронизация и догон пропущенного ═══════ */
+let es = null;
+function connectSSE(){
+  if (es){ es.close(); es = null; }
+  if (!phoneOK()) return;
+  const base = phone.server.replace(/\/+$/,'');
+  es = new EventSource(`${base}/${encodeURIComponent(phone.topic.trim())}/sse?since=12h`);
+  es.onmessage = e => {
+    try {
+      const m = JSON.parse(e.data);
+      if (m.event !== 'message' || !m.message) return;
+      ingestRemote(m);
+    } catch(_){}
+  };
+}
+function ingestRemote(m){
+  const t = (m.time || 0) * 1000;
+  const r = reminders.find(x => x.remoteId === m.id);
+  if (r){
+    if (r.status === 'pending'){
+      r.status = 'delivered';
+      r.deliveredAt = Math.max(r.time, Date.now());
+      r.missed = Date.now() - r.deliveredAt > 15000;
+      alarmQueue.push(r);
+      save(); render();
+    }
+  } else {
+    reminders.push({
+      id: 'srv-' + m.id, seq: seq++,
+      text: String(m.message).slice(0,500), time: t, createdAt: t,
+      status: 'delivered', deliveredAt: Math.max(t, Date.now()),
+      missed: Date.now() - Math.max(t, Date.now()) > 15000,
+      remoteId: m.id, sentToServer: true, snoozes: 0
+    });
+    save(); render();
+  }
+}
+
+/* ═══════ тревожный оверлей ═══════ */
+let alarmQueue = [];
+function showNextAlarm(){
+  if (!alarmQueue.length || $('#alarmOverlay').classList.contains('open')) return;
+  const r = alarmQueue[0];
+  $('#alarmMeta').textContent = `сигнал №${String(r.seq).padStart(3,'0')} · ${fmtWhen(r.time)}${r.missed ? ' · пока вас не было' : ''}`;
+  const t = $('#alarmText');
+  t.textContent = r.text;
+  t.classList.toggle('long', r.text.length > 48);
+  $('#alarmOverlay').classList.add('open');
+  startAlarmLoop();
+  if (navigator.vibrate) navigator.vibrate([300,150,300]);
+  $('#acceptBtn').focus();
+}
+function closeAlarm(){
+  $('#alarmOverlay').classList.remove('open');
+  alarmQueue.shift();
+  if (alarmQueue.length) setTimeout(showNextAlarm, 350);
+  else stopAlarmLoop();
+}
+ $('#acceptBtn').addEventListener('click', ()=>{ blip(); closeAlarm(); });
+ $('#snoozeBtn').addEventListener('click', async ()=>{
+  const r = alarmQueue[0];
+  if (r){
+    await cancelRemote(r);                       // отменяем старое уведомление на сервере
+    r.status = 'pending'; r.missed = false;
+    r.sentToServer = false; r.remoteId = null;
+    r.time = Date.now() + 5*60000;
+    r.snoozes = (r.snoozes||0) + 1;
+    save(); render();
+    forwardDue();                                // и ставим новое, на 5 минут позже
+    toast(`Отложено — прозвучит в ${fmtWhen(r.time)}`);
+  }
+  blip(); closeAlarm();
+});
+
+/* ═══════ рендер ═══════ */
+function render(){
+  const pending = reminders.filter(r=>r.status==='pending').sort((a,b)=>a.time-b.time);
+  const done    = reminders.filter(r=>r.status==='delivered').sort((a,b)=>(b.deliveredAt||b.time)-(a.deliveredAt||a.time));
+  const pOK = phoneOK();
+
+  $('#queueMeta').textContent = pending.length ? `${pending.length} шт.` : '';
+  $('#historyMeta').textContent = done.length ? `${done.length} шт.` : '';
+  $('#clearHistory').hidden = done.length === 0;
+  $('#formMeta').textContent = `сегодня ${new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long'}).format(new Date())}`;
+
+  const q = $('#queueList');
+  if (!pending.length){
+    q.innerHTML = `<div class="empty">${icon('bellOff',26)}Очередь пуста. Напишите сообщение, назначьте час — оно прозвучит на телефоне.</div>`;
+  } else {
+    q.innerHTML = pending.map(r=>{
+      let flag, cls='';
+      if (pOK){
+        if (r.sentToServer)                     { flag = '→ телефон · передано'; cls='sent'; }
+        else if (r.time - Date.now() > PUSH_WINDOW) flag = '→ телефон · уйдёт за 11 ч до срока';
+        else                                    flag = '→ телефон · передаётся…';
+      } else flag = '→ только в этом браузере · подключите телефон';
+      return `
+      <article class="ticket" data-id="${r.id}">
+        <div class="t-side">
+          <span class="t-num">#${String(r.seq).padStart(3,'0')}</span>
+          <span class="t-when">${fmtWhen(r.time)}</span>
+          <span class="t-flag ${cls}">${flag}</span>
+          ${r.snoozes ? `<span class="t-flag">отложен ×${r.snoozes}</span>` : ''}
+        </div>
+        <p class="t-text">${esc(r.text)}</p>
+        <div class="t-right">
+          <div class="t-count" data-time="${r.time}">–${fmtCd(r.time - Date.now())}</div>
+          <div class="t-actions">
+            <button class="ibtn" data-act="edit" title="Изменить">${icon('pencil')}</button>
+            <button class="ibtn" data-act="del" title="Удалить">${icon('trash')}</button>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  const h = $('#historyList');
+  if (!done.length){
+    h.innerHTML = `<div class="empty">${icon('arch',26)}Здесь появятся сообщения в момент доставки.</div>`;
+  } else {
+    h.innerHTML = done.slice(0,12).map(r=>`
+      <div class="h-item">
+        <div class="h-date"><b>доставлено</b> ${fmtWhen(r.deliveredAt || r.time)}${r.missed ? '<i>пока приложение было закрыто</i>' : ''}</div>
+        <div class="h-text">${esc(r.text)}</div>
+      </div>`).join('');
+  }
+  updateNearest();
+}
+function updateNearest(){
+  const pending = reminders.filter(r=>r.status==='pending');
+  const el = $('#nearest'), tx = $('#nearestText');
+  if (!pending.length){ el.classList.remove('live'); tx.textContent = 'передача не запланирована'; return; }
+  const next = Math.min(...pending.map(r=>r.time));
+  el.classList.add('live');
+  tx.textContent = `ближайший сигнал — ${fmtWhen(next)} · через ${fmtCd(next - Date.now())}`;
+}
+
+/* тикающий цикл */
+function tick(){
+  renderClock();
+  const now = Date.now();
+  document.querySelectorAll('.t-count').forEach(el=>{
+    const diff = +el.dataset.time - now;
+    if (diff <= 0) return;
+    el.textContent = '–' + fmtCd(diff);
+    el.classList.toggle('urgent', diff < 60000);
+  });
+  let fired = false;
+  reminders.forEach(r=>{
+    if (r.status === 'pending' && r.time <= now){
+      r.status = 'delivered'; r.deliveredAt = Math.max(r.time, now);
+      alarmQueue.push(r); fired = true;
+    }
+  });
+  if (fired){ save(); render(); }
+  updateNearest();
+  if (alarmQueue.length) showNextAlarm();
+}
+setInterval(tick, 250);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden){ tick(); forwardDue(); } });
+window.addEventListener('storage', ()=>{
+  try { reminders = JSON.parse(localStorage.getItem(LS_DATA)) || []; } catch(e){}
+  render();
+});
+
+/* ═══════ форма ═══════ */
+const ta = $('#msgText'), dIn = $('#dateInput'), tIn = $('#timeInput');
+let editingId = null, formMsgTimer = null;
+function toLocalInputs(d){
+  dIn.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  tIn.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function buildDate(){
+  if (!dIn.value || !tIn.value) return null;
+  const [y,m,d] = dIn.value.split('-').map(Number);
+  const [hh,mm] = tIn.value.split(':').map(Number);
+  const dt = new Date(y, m-1, d, hh, mm, 0, 0);
+  return isNaN(dt) ? null : dt;
+}
+function formError(msg){
+  const el = $('#formMsg');
+  el.textContent = msg;
+  clearTimeout(formMsgTimer);
+  formMsgTimer = setTimeout(()=>{ el.textContent=''; }, 4500);
+  const box = $('#composeBox');
+  box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+}
+function resetForm(){
+  ta.value=''; $('#charCount').textContent='0 / 500';
+  dIn.value=''; tIn.value='';
+  editingId = null;
+  $('#ctaLabel').textContent = 'Отправить в будущее';
+  $('#cancelEdit').hidden = true;
+}
+ta.addEventListener('input', ()=>{
+  $('#charCount').textContent = `${ta.value.length} / 500`;
+  $('#charCount').closest('.char-row').classList.toggle('over', ta.value.length >= 500);
+});
+ $('#ctaBtn').addEventListener('click', async ()=>{
+  audio();
+  const text = ta.value.trim();
+  if (!text){ formError('Введите текст сообщения.'); ta.focus(); return; }
+  const d = buildDate();
+  if (!d){ formError('Назначьте дату и время доставки.'); return; }
+  if (d.getTime() <= Date.now()){ formError('Этот момент уже в прошлом — выберите будущее время.'); return; }
+  const ts = d.getTime();
+
+  if (editingId){
+    const r = reminders.find(r=>r.id===editingId);
+    if (r){
+      await cancelRemote(r);                     // прежняя версия у сервера — отменяем
+      r.text = text; r.time = ts;
+      r.sentToServer = false; r.remoteId = null;
+    }
+    save(); render(); resetForm(); blip();
+    forwardDue();                                // новая версия уходит на сервер
+    toast(`Правка сохранена — доставка ${fmtFull(ts)}`);
+  } else {
+    seq++;
+    const r = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      seq, text, time: ts, createdAt: Date.now(),
+      status:'pending', snoozes:0, sentToServer:false, remoteId:null
+    };
+    reminders.push(r);
+    save(); render(); resetForm(); blip();
+    if (phoneOK() && ts - Date.now() <= PUSH_WINDOW){
+      const ok = await pushToPhone(r);
+      toast(ok ? `Сигнал ушёл — телефон прозвенит ${fmtFull(ts)}, даже если закрыть браузер`
+               : `Сигнал сохранён; передам на телефон, как появится связь`);
+    } else {
+      toast(`Сигнал отправлен в будущее — доставка ${fmtFull(ts)}`);
+    }
+    forwardDue();
+  }
+});
+ $('#cancelEdit').addEventListener('click', resetForm);
+
+/* пресеты */
+function atToday(h,m){ const d=new Date(); d.setHours(h,m,0,0); if (d<=new Date()) d.setDate(d.getDate()+1); return d; }
+[
+  {l:'через 5 минут', f:()=> new Date(Date.now()+5*60000)},
+  {l:'через час',     f:()=> new Date(Date.now()+3600000)},
+  {l:'сегодня 18:00', f:()=> atToday(18,0)},
+  {l:'завтра 09:00',  f:()=>{ const d=new Date(); d.setDate(d.getDate()+1); d.setHours(9,0,0,0); return d; }},
+].forEach(p=>{
+  const b = document.createElement('button');
+  b.type='button'; b.className='chip'; b.textContent = p.l;
+  b.addEventListener('click', ()=>toLocalInputs(p.f()));
+  $('#presets').appendChild(b);
+});
+
+/* действия на талонах */
+ $('#queueList').addEventListener('click', async e=>{
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.closest('.ticket').dataset.id;
+  const r = reminders.find(x=>x.id===id);
+  if (!r) return;
+
+  if (btn.dataset.act === 'edit'){
+    editingId = id;
+    ta.value = r.text;
+    $('#charCount').textContent = `${r.text.length} / 500`;
+    toLocalInputs(new Date(r.time));
+    $('#ctaLabel').textContent = 'Сохранить правку';
+    $('#cancelEdit').hidden = false;
+    $('#composeBox').scrollIntoView({behavior:'smooth', block:'center'});
+    ta.focus();
+  }
+  if (btn.dataset.act === 'del'){
+    if (btn.dataset.arm === '1'){
+      if (r.sentToServer){
+        cancelRemote(r);                         // отменяем уведомление и на сервере
+        toast('Отправление отозвано, уведомление на телефоне отменено.');
+      } else {
+        toast('Отправление отозвано и уничтожено.');
+      }
+      reminders = reminders.filter(x=>x.id!==id);
+      save(); render();
+    } else {
+      btn.dataset.arm = '1';
+      btn.classList.add('danger-armed');
+      btn.textContent = r.sentToServer ? 'удалить?' : 'точно?';
+      setTimeout(()=>{
+        if (!btn.isConnected) return;
+        btn.dataset.arm=''; btn.classList.remove('danger-armed');
+        btn.innerHTML = icon('trash');
+      }, 2400);
+    }
+  }
+});
+ $('#clearHistory').addEventListener('click', ()=>{
+  reminders = reminders.filter(r=>r.status==='pending');
+  save(); render();
+  toast('Архив доставленных очищен.');
+});
+
+/* ═══════ панель телефона ═══════ */
+function renderPhoneUI(){
+  const ok = phoneOK();
+  $('#phStatus').classList.toggle('ok', ok);
+  $('#phStatusText').textContent = ok
+    ? `Подключено · канал «${phone.topic.trim()}» на ${phone.server.replace(/^https?:\/\//,'')}`
+    : 'Телефон не подключен — уведомления будут только в этом браузере';
+  $('#phoneBtnLabel').textContent = ok ? 'Телефон ✓' : 'Телефон';
+  $('#phoneBtn').classList.toggle('on', ok);
+  $('#connState').textContent = ok ? `канал: ${phone.topic.trim()}` : 'телефон не подключен';
+}
+ $('#phoneBtn').addEventListener('click', ()=>{
+  const w = $('#phoneWrap');
+  const open = w.classList.toggle('open');
+  if (open && !$('#topicIn').value) $('#topicIn').value = phone.topic || genTopicName();
+  if (open && !$('#srvIn').value) $('#srvIn').value = phone.server || 'https://ntfy.sh';
+});
+function genTopicName(){
+  const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return 'sig-' + Array.from(bytes, b=>abc[b % abc.length]).join('');
+}
+ $('#genTopic').addEventListener('click', ()=>{ $('#topicIn').value = genTopicName(); });
+ $('#copyTopic').addEventListener('click', async ()=>{
+  const v = $('#topicIn').value.trim();
+  if (!v) return;
+  try { await navigator.clipboard.writeText(v); toast('Имя топика скопировано — вставьте его в приложении ntfy.'); }
+  catch(e){ $('#topicIn').select(); toast('Выделено — скопируйте вручную (Ctrl+C).'); }
+});
+ $('#savePhone').addEventListener('click', ()=>{
+  const srv = $('#srvIn').value.trim() || 'https://ntfy.sh';
+  const top = $('#topicIn').value.trim();
+  if (!top){ toast('Придумайте или сгенерируйте имя топика.'); return; }
+  if (!/^https?:\/\//.test(srv)){ toast('Адрес сервера должен начинаться с http(s)://'); return; }
+  phone.server = srv; phone.topic = top; phone.sound = $('#soundSel').value;
+  save(); renderPhoneUI(); connectSSE(); forwardDue();
+  $('#phoneWrap').classList.remove('open');
+  blip();
+  toast('Телефон подключен. Проверьте: рядом кнопка «Отправить тестовое».');
+});
+ $('#testPush').addEventListener('click', async ()=>{
+  if (!phoneOK()){ toast('Сначала сохраните топик и нажмите «Подключить».'); return; }
+  phone.sound = $('#soundSel').value; phone.server = $('#srvIn').value.trim() || phone.server; save();
+  const ok = await pushToPhone(null, true);
+  toast(ok ? 'Тестовое отправлено — смотрите на телефон, должно прийти со звуком.' : 'Не дошло. Проверьте подписку на топик в приложении ntfy и интернет.');
+});
+ $('#srvIn').value = phone.server || 'https://ntfy.sh';
+ $('#topicIn').value = phone.topic || '';
+ $('#soundSel').value = phone.sound || 'default';
+
+/* ═══════ звук вкл/выкл ═══════ */
+function renderMute(){
+  const b = $('#muteBtn');
+  b.innerHTML = icon(muted ? 'volX' : 'vol', 15) + `<span>${muted ? 'звук выкл' : 'звук вкл'}</span>`;
+  b.classList.toggle('on', !muted);
+  b.setAttribute('aria-pressed', String(!muted));
+}
+ $('#muteBtn').addEventListener('click', ()=>{ muted = !muted; save(); renderMute(); if (!muted) blip(); });
+
+/* ═══════ запуск ═══════ */
+initClock();
+dIn.min = `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}-${pad(new Date().getDate())}`;
+renderMute(); renderPhoneUI();
+
+// доставленные, пока страница была закрыта
+const missed = reminders
+  .filter(r=>r.status==='pending' && r.time <= Date.now())
+  .sort((a,b)=>a.time-b.time);
+if (missed.length){
+  missed.forEach(r=>{ r.status='delivered'; r.deliveredAt=Math.max(r.time, Date.now()); r.missed=true; alarmQueue.push(r); });
+  save();
+}
+render();
+if (alarmQueue.length) setTimeout(showNextAlarm, 500);
+connectSSE();
+forwardDue();
+</script>
+</body>
+</html>
