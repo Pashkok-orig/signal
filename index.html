@@ -250,6 +250,7 @@
           <div class="step">Установите бесплатное приложение <a href="https://ntfy.sh/apps" target="_blank" rel="noopener">ntfy</a> — есть в Google Play, App Store и F-Droid.</div>
           <div class="step">В приложении нажмите «+» и подпишитесь на топик — скопируйте его имя ниже и вставьте. Имя случайное: уведомления видите только вы.</div>
           <div class="step">На Android отключите для ntfy оптимизацию батареи (Настройки → Батарея), чтобы ничего не проспать.</div>
+          <div class="step">Звук уведомления на iPhone выбирается в самом приложении ntfy: откройте подписку → Notification settings → Sound. Список «Звук» ниже влияет только на Android.</div>
         </div>
         <div class="cfg-grid">
           <div>
@@ -265,7 +266,7 @@
             </div>
           </div>
           <div>
-            <label class="field-label" for="soundSel">Звук на телефоне</label>
+            <label class="field-label" for="soundSel">Звук на телефоне (Android)</label>
             <select id="soundSel">
               <option value="default">Стандартный системы</option>
               <option value="ding">Ding</option>
@@ -483,39 +484,82 @@ function toast(msg){
   setTimeout(()=>{ el.classList.add('hide'); setTimeout(()=>el.remove(), 320); }, 4200);
 }
 
-/* ═══════ ntfy: отправка на телефон ═══════ */
+/* ═══════ ntfy: отправка на телефон ═══════
+   Отправляем в JSON-формате: кириллица в HTTP-заголовках запрещена стандартом,
+   поэтому заголовки X-Title/X-Message не подходят — текст внутри тела запроса. */
+let sendFailNotified = false;
 async function pushToPhone(r, test=false){
+  if (!phoneOK()) return false;
+  const base = phone.server.replace(/\/+$/,'');
+  const payload = test
+    ? {
+        topic: phone.topic.trim(),
+        title: 'СИГНАЛ · тест связи',
+        message: 'Связь с приложением СИГНАЛ установлена. Уведомления будут приходить сюда.',
+        tags: ['bell'],
+        priority: 4
+      }
+    : {
+        topic: phone.topic.trim(),
+        title: `СИГНАЛ · №${String(r.seq).padStart(3,'0')}`,
+        message: r.text,
+        tags: ['bell'],
+        priority: 4,
+        delay: String(Math.ceil(r.time / 1000))   // момент доставки: unix-время в секундах
+      };
+  if (!test && phone.sound && phone.sound !== 'default') payload.sound = phone.sound;
+  const ctrl = new AbortController();
+  const to = setTimeout(()=>ctrl.abort(), 10000);
+  try {
+    const res = await fetch(base + '/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if (!test){
+      r.remoteId = j.id; r.sentToServer = true;
+      sendFailNotified = false;
+      save(); render();
+    }
+    return true;
+  } catch(e){
+    if (!test && !sendFailNotified){   // не спамим тостом каждые 30 секунд
+      toast('Не удалось связаться с сервером — повторю автоматически.');
+      sendFailNotified = true;
+    }
+    return false;
+  } finally { clearTimeout(to); }
+}
+
+/* ═══════ ntfy: отмена запланированного на сервере ═══════
+   Точечного удаления у ntfy нет. Отложенные сообщения лежат в кэше топика,
+   поэтому: очищаем кэш (cleer) и переотправляем всё, что ещё должно прозвенеть.
+   Уже доставленные сообщения это не затрагивает — их история хранится локально. */
+async function serverCleer(){
   if (!phoneOK()) return false;
   const base = phone.server.replace(/\/+$/,'');
   const ctrl = new AbortController();
   const to = setTimeout(()=>ctrl.abort(), 10000);
   try {
-    const headers = {
-      'X-Title':   test ? 'СИГНАЛ · тест связи' : `СИГНАЛ · №${String(r.seq).padStart(3,'0')}`,
-      'X-Priority':'4',
-      'X-Tags':    'bell',
-      'X-Sound':   phone.sound || 'default'
-    };
-    if (!test) headers['X-Delay'] = String(Math.ceil(r.time/1000));
-    const res = await fetch(base + '/', { method:'POST', headers, body: test ? 'Связь с приложением СИГНАЛ установлена. Уведомления будут приходить сюда.' : r.text, signal: ctrl.signal });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const j = await res.json();
-    if (!test){ r.remoteId = j.id; r.sentToServer = true; save(); render(); }
-    return true;
-  } catch(e){
-    if (!test) toast('Не удалось связаться с сервером — повторю автоматически.');
-    return false;
-  } finally { clearTimeout(to); }
+    const res = await fetch(`${base}/${encodeURIComponent(phone.topic.trim())}/cleer`, { method:'POST', signal: ctrl.signal });
+    return res.ok;
+  } catch(e){ return false; }
+  finally { clearTimeout(to); }
 }
-/* отмена запланированного на сервере уведомления (при правке, удалении, переносе) */
 async function cancelRemote(r){
-  if (!phoneOK() || !r.remoteId) return;
-  const base = phone.server.replace(/\/+$/,'');
-  try {
-    await fetch(`${base}/${encodeURIComponent(phone.topic.trim())}?id=${encodeURIComponent(r.remoteId)}`, { method:'DELETE' });
-  } catch(e){}
+  if (!phoneOK() || !r.sentToServer) return true;   // на сервере нечего отменять
+  const ok = await serverCleer();
+  if (!ok) return false;                            // сеть/сервер недоступны — честно сообщим вызывающему
   r.remoteId = null;
+  const others = reminders.filter(x => x.status==='pending' && x.sentToServer && x.id !== r.id);
+  others.forEach(x => { x.sentToServer = false; x.remoteId = null; });
+  for (const x of others) await pushToPhone(x);     // заново встают в очередь сервера
+  return true;
 }
+
 /* досыльщик: дальние сообщения уходим передавать, когда до срока остаётся <11 ч */
 async function forwardDue(){
   if (!phoneOK()) return;
@@ -523,7 +567,7 @@ async function forwardDue(){
   for (const r of reminders){
     if (r.status === 'pending' && !r.sentToServer && r.time - now <= PUSH_WINDOW){
       const ok = await pushToPhone(r);
-      if (!ok) return;
+      if (!ok) return;                       // сеть лежит — попробуем в следующем такте
     }
   }
 }
@@ -591,14 +635,15 @@ function closeAlarm(){
  $('#snoozeBtn').addEventListener('click', async ()=>{
   const r = alarmQueue[0];
   if (r){
-    await cancelRemote(r);                       // отменяем старое уведомление на сервере
+    const cancelled = await cancelRemote(r);   // гасим старое уведомление на сервере
     r.status = 'pending'; r.missed = false;
     r.sentToServer = false; r.remoteId = null;
     r.time = Date.now() + 5*60000;
     r.snoozes = (r.snoozes||0) + 1;
     save(); render();
-    forwardDue();                                // и ставим новое, на 5 минут позже
-    toast(`Отложено — прозвучит в ${fmtWhen(r.time)}`);
+    forwardDue();                              // и ставим новое, на 5 минут позже
+    if (cancelled) toast(`Отложено — прозвучит в ${fmtWhen(r.time)}`);
+    else toast(`Отложено до ${fmtWhen(r.time)}. Прежнее уведомление на сервере отменить не удалось — телефон прозвенит и в исходное время.`);
   }
   blip(); closeAlarm();
 });
@@ -737,15 +782,19 @@ ta.addEventListener('input', ()=>{
   const ts = d.getTime();
 
   if (editingId){
-    const r = reminders.find(r=>r.id===editingId);
+    const r = reminders.find(x=>x.id===editingId);
     if (r){
-      await cancelRemote(r);                     // прежняя версия у сервера — отменяем
+      const cancelled = await cancelRemote(r);   // прежняя версия у сервера — отменяем
+      if (!cancelled){
+        formError('Не удалось отменить прежнее уведомление на сервере. Правка не сохранена — попробуйте ещё раз.');
+        return;
+      }
       r.text = text; r.time = ts;
       r.sentToServer = false; r.remoteId = null;
-    }
-    save(); render(); resetForm(); blip();
-    forwardDue();                                // новая версия уходит на сервер
-    toast(`Правка сохранена — доставка ${fmtFull(ts)}`);
+      save(); render(); resetForm(); blip();
+      forwardDue();                              // новая версия уходит на сервер
+      toast(`Правка сохранена — доставка ${fmtFull(ts)}`);
+    } else { resetForm(); }
   } else {
     seq++;
     const r = {
@@ -801,14 +850,16 @@ function atToday(h,m){ const d=new Date(); d.setHours(h,m,0,0); if (d<=new Date(
   }
   if (btn.dataset.act === 'del'){
     if (btn.dataset.arm === '1'){
+      let msg = 'Отправление отозвано и уничтожено.';
       if (r.sentToServer){
-        cancelRemote(r);                         // отменяем уведомление и на сервере
-        toast('Отправление отозвано, уведомление на телефоне отменено.');
-      } else {
-        toast('Отправление отозвано и уничтожено.');
+        const ok = await cancelRemote(r);        // гасим уведомление и на сервере
+        msg = ok
+          ? 'Отправление отозвано, уведомление на телефоне отменено.'
+          : 'Удалено здесь, но отменить на сервере не удалось — телефон всё равно прозвенит один раз.';
       }
       reminders = reminders.filter(x=>x.id!==id);
       save(); render();
+      toast(msg);
     } else {
       btn.dataset.arm = '1';
       btn.classList.add('danger-armed');
